@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "5X6B399RL4.com.ashden.ballr",
+        "paths": [
+          "/session/*"
+        ]
+      }
+    ]
+  }
+}

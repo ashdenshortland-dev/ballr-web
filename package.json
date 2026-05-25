@@ -1,0 +1,10 @@
+{
+  "name": "ballr-web",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0"
+  }
+}
