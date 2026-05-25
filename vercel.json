@@ -1,4 +1,10 @@
 {
+  "rewrites": [
+    {
+      "source": "/session/:slug",
+      "destination": "/api/session/:slug"
+    }
+  ],
   "headers": [
     {
       "source": "/.well-known/apple-app-site-association",
