@@ -42,14 +42,19 @@ function formatDate(dateStr) {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: 'Europe/London'
   });
 }
 
 function formatTime(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
-  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString('en-GB', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    timeZone: 'Europe/London'
+  });
 }
 
 function renderPage(session) {
