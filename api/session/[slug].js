@@ -1,11 +1,11 @@
-export default async function handler(req, res) {
+const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   const { slug } = req.query;
 
   const { data: session, error } = await supabase
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   }
 
   return res.status(200).send(renderPage(session));
-}
+};
 
 function formatDate(dateStr) {
   if (!dateStr) return 'TBC';
