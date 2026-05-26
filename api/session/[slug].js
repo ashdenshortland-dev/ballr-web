@@ -23,16 +23,39 @@ module.exports = async function handler(req, res) {
       skill_levels,
       description,
       share_slug,
-      status
+      status,
+      price_pence,
+      cost_per_player_pence,
+      coach_id,
+      is_paid
     `)
     .eq('share_slug', slug)
     .single();
 
   if (error || !session) {
-    return res.status(404).send(renderPage(null));
+    return res.status(404).send(renderPage(null, null));
   }
 
-  return res.status(200).send(renderPage(session));
+  let coach = null;
+  if (session.coach_id) {
+    const { data: coachData } = await supabase
+      .from('profiles')
+      .select(`
+        full_name,
+        avatar_url,
+        coach_bio,
+        coach_rating,
+        coach_rating_count,
+        coach_specialities,
+        coach_license,
+        instagram_handle
+      `)
+      .eq('id', session.coach_id)
+      .single();
+    coach = coachData;
+  }
+
+  return res.status(200).send(renderPage(session, coach));
 };
 
 function formatDate(dateStr) {
@@ -50,14 +73,27 @@ function formatDate(dateStr) {
 function formatTime(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
-  return d.toLocaleTimeString('en-GB', { 
-    hour: '2-digit', 
+  return d.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
     minute: '2-digit',
     timeZone: 'Europe/London'
   });
 }
 
-function renderPage(session) {
+function formatPrice(pence) {
+  if (!pence) return null;
+  return '£' + (pence / 100).toFixed(2);
+}
+
+function renderStars(rating) {
+  if (!rating) return '';
+  const full = Math.floor(rating);
+  const half = rating % 1 >= 0.5 ? 1 : 0;
+  const empty = 5 - full - half;
+  return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty);
+}
+
+function renderPage(session, coach) {
   if (!session) {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -113,6 +149,8 @@ function renderPage(session) {
   const endTime = session.end_time ? formatTime(session.end_time) : null;
   const timeStr = endTime ? `${startTime} — ${endTime}` : startTime;
   const deepLink = `ballr://session/${session.share_slug}`;
+  const pricePerPlayer = formatPrice(session.cost_per_player_pence || session.price_pence);
+  const isPaid = session.is_paid && pricePerPlayer;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -121,7 +159,7 @@ function renderPage(session) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${session.title || 'Football Session'} — BALLR</title>
   <meta property="og:title" content="${session.title || 'Football Session'} — BALLR" />
-  <meta property="og:description" content="Join this session on BALLR — ${sessionDate} at ${session.location_name || session.address_text || 'TBC'}" />
+  <meta property="og:description" content="${isPaid ? pricePerPlayer + ' per player · ' : ''}${sessionDate} at ${session.location_name || session.address_text || 'TBC'}" />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -188,7 +226,13 @@ function renderPage(session) {
       letter-spacing: 1px;
       color: #fff;
     }
-    .session-type {
+    .badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .badge {
       display: inline-block;
       background: rgba(29,185,84,0.15);
       border: 1px solid rgba(29,185,84,0.3);
@@ -199,7 +243,14 @@ function renderPage(session) {
       text-transform: uppercase;
       padding: 4px 12px;
       border-radius: 50px;
-      margin-bottom: 12px;
+    }
+    .badge-price {
+      background: rgba(255,215,0,0.15);
+      border: 1px solid rgba(255,215,0,0.3);
+      color: #ffd700;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      font-weight: 700;
     }
     .session-title {
       font-family: 'Barlow Condensed', sans-serif;
@@ -241,7 +292,13 @@ function renderPage(session) {
       font-size: 16px;
       font-weight: 500;
       color: #fff;
-      line-height: 1.3;
+      line-height: 1.4;
+    }
+    .detail-value.price {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+      color: #ffd700;
     }
     .spots-bar {
       margin-top: 6px;
@@ -261,6 +318,71 @@ function renderPage(session) {
       color: ${isFull ? '#ff4444' : '#1db954'};
       font-weight: 600;
       margin-top: 4px;
+    }
+    .coach-card {
+      margin: 0 28px 20px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .coach-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #1db954;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 900;
+      font-size: 22px;
+      color: #000;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .coach-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .coach-info { flex: 1; min-width: 0; }
+    .coach-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #1db954;
+      margin-bottom: 2px;
+    }
+    .coach-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+    .coach-rating {
+      font-size: 13px;
+      color: #ffd700;
+    }
+    .coach-rating span {
+      color: #666;
+      font-size: 11px;
+      margin-left: 4px;
+    }
+    .coach-bio {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+      line-height: 1.4;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
     }
     .card-footer {
       padding: 20px 28px 28px;
@@ -314,9 +436,13 @@ function renderPage(session) {
         <div class="logo-icon">⚽</div>
         <span class="logo-text">BALLR</span>
       </div>
-      ${session.session_type ? `<div class="session-type">${session.session_type}</div>` : ''}
+      <div class="badges">
+        ${session.session_type ? `<span class="badge">${session.session_type}</span>` : ''}
+        ${isPaid ? `<span class="badge badge-price">${pricePerPlayer} per player</span>` : ''}
+      </div>
       <h1 class="session-title">${session.title || 'Football Session'}</h1>
     </div>
+
     <div class="card-body">
       <div class="detail-row">
         <div class="detail-icon">📅</div>
@@ -356,11 +482,37 @@ function renderPage(session) {
           <div class="detail-value">${session.skill_levels.join(', ')}</div>
         </div>
       </div>` : ''}
+      ${session.description ? `
+      <div class="detail-row">
+        <div class="detail-icon">📋</div>
+        <div>
+          <div class="detail-label">Session Notes</div>
+          <div class="detail-value">${session.description}</div>
+        </div>
+      </div>` : ''}
     </div>
+
+    ${coach ? `
+    <div class="coach-card">
+      <div class="coach-avatar">
+        ${coach.avatar_url ? `<img src="${coach.avatar_url}" alt="${coach.full_name}" />` : (coach.full_name ? coach.full_name[0].toUpperCase() : 'C')}
+      </div>
+      <div class="coach-info">
+        <div class="coach-label">Your Coach</div>
+        <div class="coach-name">${coach.full_name || 'Coach'}</div>
+        ${coach.coach_rating ? `
+        <div class="coach-rating">
+          ${'★'.repeat(Math.floor(coach.coach_rating))}${'☆'.repeat(5 - Math.floor(coach.coach_rating))}
+          <span>${coach.coach_rating.toFixed(1)} · ${coach.coach_rating_count || 0} reviews</span>
+        </div>` : ''}
+        ${coach.coach_bio ? `<div class="coach-bio">${coach.coach_bio}</div>` : ''}
+      </div>
+    </div>` : ''}
+
     <div class="card-footer">
-      <a href="${deepLink}" class="btn-primary">⚡ Open in BALLR</a>
+      <a href="${deepLink}" class="btn-primary">⚡ ${isPaid ? `Book for ${pricePerPlayer}` : 'Open in BALLR'}</a>
       <a href="https://testflight.apple.com/join/dwbq9ST7" class="btn-secondary">Download BALLR</a>
-      <p class="footer-note">Already have BALLR? Tap "Open in BALLR" above</p>
+      <p class="footer-note">Already have BALLR? Tap "${isPaid ? `Book for ${pricePerPlayer}` : 'Open in BALLR'}" above</p>
     </div>
   </div>
   <script>
