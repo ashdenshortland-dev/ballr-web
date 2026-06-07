@@ -10,38 +10,7 @@ module.exports = async function handler(req, res) {
 
   const { data: session, error } = await supabase
     .from('sessions')
-    .select(`
-      id,
-      title,
-      session_type,
-      start_time,
-      end_time,
-      location_name,
-      address_text,
-      current_player_count,
-      max_players,
-      skill_levels,
-      description,
-      share_slug,
-      status,
-      price_pence,
-      cost_per_player_pence,
-      coach_id,
-      is_paid,
-      coach_session_type,
-      skill_focus,
-      age_groups,
-      surface_type,
-      is_recurring,
-      recurrence_frequency,
-      recurrence_count,
-      series_id,
-      series_index,
-      block_booking_enabled,
-      block_price,
-      block_discount_percent,
-      session_pricing_model
-    `)
+    .select('*')
     .eq('share_slug', slug)
     .single();
 
@@ -113,7 +82,6 @@ function formatSurfaceType(type) {
 function renderPage(session, coach) {
   const isCoach = session && session.session_type === 'coach';
   const accentColor = isCoach ? '#F97316' : '#39FF78';
-  const accentDim = isCoach ? '#EA580C' : '#2ED769';
   const accentSoft = isCoach ? 'rgba(249,115,22,0.14)' : 'rgba(57,255,120,0.14)';
   const accentBorder = isCoach ? 'rgba(249,115,22,0.3)' : 'rgba(57,255,120,0.3)';
   const accentBg = isCoach ? 'rgba(249,115,22,0.08)' : 'rgba(57,255,120,0.08)';
@@ -175,17 +143,17 @@ p { color: #888; font-size: 16px; margin-bottom: 32px; }
 body { background: #050505; color: #fff; font-family: 'Barlow', sans-serif; min-height: 100vh; padding-bottom: 110px; }
 .hero { background: linear-gradient(180deg, ${accentBg} 0%, #050505 100%); border-bottom: 1px solid ${accentBorder}; padding: 32px 20px 28px; text-align: center; }
 .badge { display: inline-flex; align-items: center; gap: 6px; background: ${accentSoft}; border: 1px solid ${accentBorder}; color: ${accentColor}; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; margin-bottom: 14px; }
-.title { font-family: 'Barlow Condensed', sans-serif; font-size: clamp(28px,7vw,42px); font-weight: 900; line-height: 1.05; }
+.stitle { font-family: 'Barlow Condensed', sans-serif; font-size: clamp(28px,7vw,42px); font-weight: 900; line-height: 1.05; }
 .subtitle { color: #9A9DAC; font-size: 14px; margin-top: 8px; }
 .content { max-width: 480px; margin: 0 auto; padding: 0 16px; }
 .card { margin-top: 16px; background: #141414; border-radius: 16px; border: 1px solid rgba(255,255,255,0.07); overflow: hidden; }
 .card-title { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #5A5D6E; padding: 12px 16px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 .row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); }
 .row:last-child { border-bottom: none; }
-.icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; margin-top: 1px; }
-.label { font-size: 11px; color: #5A5D6E; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
-.value { font-size: 15px; color: #F0F1F5; font-weight: 500; line-height: 1.4; }
-.value.hi { color: ${accentColor}; font-weight: 700; }
+.ico { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; margin-top: 1px; }
+.lbl { font-size: 11px; color: #5A5D6E; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+.val { font-size: 15px; color: #F0F1F5; font-weight: 500; line-height: 1.4; }
+.val.hi { color: ${accentColor}; font-weight: 700; }
 .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
 .tag { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #C8CAD4; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 7px; }
 .tag.hi { background: ${accentSoft}; border-color: ${accentBorder}; color: ${accentColor}; }
@@ -216,34 +184,34 @@ body { background: #050505; color: #fff; font-family: 'Barlow', sans-serif; min-
 <body>
 <div class="hero">
   <div class="badge">${isCoach ? '🏆 Coaching Session' : '⚽ ' + typeLabel}</div>
-  <div class="title">${session.title || typeLabel}</div>
+  <div class="stitle">${session.title || typeLabel}</div>
   ${session.description ? '<div class="subtitle">' + session.description.substring(0,90) + (session.description.length > 90 ? '...' : '') + '</div>' : ''}
 </div>
 <div class="content">
 
   <div class="card">
     <div class="card-title">When &amp; Where</div>
-    ${session.start_time ? '<div class="row"><div class="icon">📅</div><div><div class="label">Date</div><div class="value">' + formatDate(session.start_time) + '</div></div></div>' : ''}
-    ${session.start_time ? '<div class="row"><div class="icon">⏰</div><div><div class="label">Time</div><div class="value">' + formatTime(session.start_time) + (session.end_time ? ' – ' + formatTime(session.end_time) : '') + (isRecurring && recurrenceLabel ? '<div class="recur-pill">🔁 ' + recurrenceLabel + '</div>' : '') + '</div></div></div>' : ''}
-    ${(session.location_name || session.address_text) ? '<div class="row"><div class="icon">📍</div><div><div class="label">Location</div><div class="value">' + (session.location_name || '') + (session.location_name && session.address_text ? '<br><span style="color:#6B6F7E;font-size:13px;">' + session.address_text + '</span>' : (session.address_text || '')) + '</div></div></div>' : ''}
-    ${surfaceLabel ? '<div class="row"><div class="icon">🟩</div><div><div class="label">Surface</div><div class="value">' + surfaceLabel + '</div></div></div>' : ''}
+    ${session.start_time ? '<div class="row"><div class="ico">📅</div><div><div class="lbl">Date</div><div class="val">' + formatDate(session.start_time) + '</div></div></div>' : ''}
+    ${session.start_time ? '<div class="row"><div class="ico">⏰</div><div><div class="lbl">Time</div><div class="val">' + formatTime(session.start_time) + (session.end_time ? ' – ' + formatTime(session.end_time) : '') + (isRecurring && recurrenceLabel ? '<div class="recur-pill">🔁 ' + recurrenceLabel + '</div>' : '') + '</div></div></div>' : ''}
+    ${(session.location_name || session.address_text) ? '<div class="row"><div class="ico">📍</div><div><div class="lbl">Location</div><div class="val">' + (session.location_name || '') + (session.location_name && session.address_text ? '<br><span style="color:#6B6F7E;font-size:13px;">' + session.address_text + '</span>' : (session.address_text || '')) + '</div></div></div>' : ''}
+    ${surfaceLabel ? '<div class="row"><div class="ico">🟩</div><div><div class="lbl">Surface</div><div class="val">' + surfaceLabel + '</div></div></div>' : ''}
   </div>
 
   <div class="card">
     <div class="card-title">Session Details</div>
-    ${isCoach && session.coach_session_type ? '<div class="row"><div class="icon">📋</div><div><div class="label">Format</div><div class="value hi">' + formatCoachSessionType(session.coach_session_type) + '</div></div></div>' : ''}
-    ${ageGroups.length > 0 ? '<div class="row"><div class="icon">👶</div><div><div class="label">Age Groups</div><div class="tags">' + ageGroups.map(a => '<span class="tag hi">' + a + '</span>').join('') + '</div></div></div>' : ''}
-    ${skillLevels.length > 0 ? '<div class="row"><div class="icon">💪</div><div><div class="label">Skill Level</div><div class="tags">' + skillLevels.map(s => '<span class="tag">' + s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g,' ') + '</span>').join('') + '</div></div></div>' : ''}
-    ${skillFocus.length > 0 ? '<div class="row"><div class="icon">🎯</div><div><div class="label">Skill Focus</div><div class="tags">' + skillFocus.map(s => '<span class="tag">' + s + '</span>').join('') + '</div></div></div>' : ''}
-    ${session.max_players ? '<div class="spots-wrap"><div class="label" style="margin-bottom:7px;">👥 Spots</div><div class="spots-head"><span>' + (session.current_player_count||0) + ' joined</span><b>' + spotsLeft + ' left of ' + session.max_players + '</b></div><div class="bar"><div class="bar-fill" style="width:' + fillPct + '%"></div></div></div>' : ''}
-    ${!isCoach && session.description ? '<div class="row"><div class="icon">💬</div><div><div class="label">About</div><div class="value" style="font-size:14px;color:#9A9DAC;">' + session.description + '</div></div></div>' : ''}
+    ${isCoach && session.coach_session_type ? '<div class="row"><div class="ico">📋</div><div><div class="lbl">Format</div><div class="val hi">' + formatCoachSessionType(session.coach_session_type) + '</div></div></div>' : ''}
+    ${ageGroups.length > 0 ? '<div class="row"><div class="ico">👶</div><div><div class="lbl">Age Groups</div><div class="tags">' + ageGroups.map(a => '<span class="tag hi">' + a + '</span>').join('') + '</div></div></div>' : ''}
+    ${skillLevels.length > 0 ? '<div class="row"><div class="ico">💪</div><div><div class="lbl">Skill Level</div><div class="tags">' + skillLevels.map(s => '<span class="tag">' + s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g,' ') + '</span>').join('') + '</div></div></div>' : ''}
+    ${skillFocus.length > 0 ? '<div class="row"><div class="ico">🎯</div><div><div class="lbl">Skill Focus</div><div class="tags">' + skillFocus.map(s => '<span class="tag">' + s + '</span>').join('') + '</div></div></div>' : ''}
+    ${session.max_players ? '<div class="spots-wrap"><div class="lbl" style="margin-bottom:7px;">👥 Spots</div><div class="spots-head"><span>' + (session.current_player_count||0) + ' joined</span><b>' + spotsLeft + ' left of ' + session.max_players + '</b></div><div class="bar"><div class="bar-fill" style="width:' + fillPct + '%"></div></div></div>' : ''}
+    ${!isCoach && session.description ? '<div class="row"><div class="ico">💬</div><div><div class="lbl">About</div><div class="val" style="font-size:14px;color:#9A9DAC;">' + session.description + '</div></div></div>' : ''}
   </div>
 
-  ${isPaid || hasBlockBooking ? '<div class="card"><div class="card-title">Pricing</div><div class="price-wrap"><div class="price-amt">' + (sessionPrice || 'See app') + '</div><div class="price-note">per ' + (isCoach ? 'session' : 'player') + '</div>' + (hasBlockBooking ? '<div class="block-row"><div><div class="label" style="margin-bottom:3px;">Block Booking</div><div class="block-amt">' + blockPrice + '</div><div style="font-size:12px;color:#9A9DAC;">' + (session.recurrence_count||'multiple') + ' sessions</div></div>' + (blockDiscount ? '<div class="save-badge">SAVE ' + blockDiscount + '%</div>' : '') + '</div>' : '') + '</div></div>' : ''}
+  ${isPaid || hasBlockBooking ? '<div class="card"><div class="card-title">Pricing</div><div class="price-wrap"><div class="price-amt">' + (sessionPrice || 'See app') + '</div><div class="price-note">per ' + (isCoach ? 'session' : 'player') + '</div>' + (hasBlockBooking ? '<div class="block-row"><div><div class="lbl" style="margin-bottom:3px;">Block Booking</div><div class="block-amt">' + blockPrice + '</div><div style="font-size:12px;color:#9A9DAC;">' + (session.recurrence_count||'multiple') + ' sessions</div></div>' + (blockDiscount ? '<div class="save-badge">SAVE ' + blockDiscount + '%</div>' : '') + '</div>' : '') + '</div></div>' : ''}
 
-  ${isCoach && session.description ? '<div class="card"><div class="card-title">About This Session</div><div class="row"><div class="icon">💬</div><div class="value" style="font-size:14px;color:#9A9DAC;line-height:1.6;">' + session.description + '</div></div></div>' : ''}
+  ${isCoach && session.description ? '<div class="card"><div class="card-title">About This Session</div><div class="row"><div class="ico">💬</div><div class="val" style="font-size:14px;color:#9A9DAC;line-height:1.6;">' + session.description + '</div></div></div>' : ''}
 
-  ${coach ? '<div class="card"><div class="card-title">Your Coach</div><div class="coach-wrap">' + (coach.avatar_url ? '<img class="avatar" src="' + coach.avatar_url + '" alt="' + (coach.full_name||'Coach') + '">' : '<div class="avatar-ph">🏆</div>') + '<div><div class="coach-name">' + (coach.full_name||'Coach') + '</div>' + (coach.coach_rating ? '<div class="stars">' + renderStars(coach.coach_rating) + ' ' + coach.coach_rating.toFixed(1) + (coach.coach_rating_count ? ' <span style="color:#6B6F7E;font-size:12px;">(' + coach.coach_rating_count + ' reviews)</span>' : '') + '</div>' : '') + (coach.coach_license ? '<div class="coach-sub">📋 ' + coach.coach_license + '</div>' : '') + (coach.instagram_handle ? '<div class="coach-sub">📷 @' + coach.instagram_handle + '</div>' : '') + '</div></div>' + (coach.coach_bio ? '<div class="bio">' + coach.coach_bio + '</div>' : '') + (coach.coach_specialities && coach.coach_specialities.length > 0 ? '<div class="spec-wrap"><div class="label" style="margin-bottom:6px;">Specialities</div><div class="tags">' + (Array.isArray(coach.coach_specialities)?coach.coach_specialities:[coach.coach_specialities]).map(s=>'<span class="tag hi">'+s+'</span>').join('') + '</div></div>' : '') + '</div>' : ''}
+  ${coach ? '<div class="card"><div class="card-title">Your Coach</div><div class="coach-wrap">' + (coach.avatar_url ? '<img class="avatar" src="' + coach.avatar_url + '" alt="' + (coach.full_name||'Coach') + '" onerror="this.style.display='none'">' : '<div class="avatar-ph">🏆</div>') + '<div><div class="coach-name">' + (coach.full_name||'Coach') + '</div>' + (coach.coach_rating ? '<div class="stars">' + renderStars(coach.coach_rating) + ' ' + coach.coach_rating.toFixed(1) + (coach.coach_rating_count ? ' <span style="color:#6B6F7E;font-size:12px;">(' + coach.coach_rating_count + ' reviews)</span>' : '') + '</div>' : '') + (coach.coach_license ? '<div class="coach-sub">📋 ' + coach.coach_license + '</div>' : '') + (coach.instagram_handle ? '<div class="coach-sub">📷 @' + coach.instagram_handle + '</div>' : '') + '</div></div>' + (coach.coach_bio ? '<div class="bio">' + coach.coach_bio + '</div>' : '') + (coach.coach_specialities && coach.coach_specialities.length > 0 ? '<div class="spec-wrap"><div class="lbl" style="margin-bottom:6px;">Specialities</div><div class="tags">' + (Array.isArray(coach.coach_specialities)?coach.coach_specialities:[coach.coach_specialities]).map(s=>'<span class="tag hi">'+s+'</span>').join('') + '</div></div>' : '') + '</div>' : ''}
 
 </div>
 <div class="cta-bar">
