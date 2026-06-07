@@ -11,7 +11,7 @@ module.exports = async function handler(req, res) {
   const { data: session, error } = await supabase
     .from('sessions')
     .select('*')
-    .eq('share_slug', slug)
+    .eq('share_slug', slug
     .single();
 
   if (error || !session) {
@@ -80,7 +80,7 @@ function formatSurfaceType(type) {
 }
 
 function renderPage(session, coach) {
-  const isCoach = session && session.session_type === 'coach';
+    const isCoach = true; // Coach shareable link - always use coach/orange theme
   const accentColor = isCoach ? '#F97316' : '#39FF78';
   const accentSoft = isCoach ? 'rgba(249,115,22,0.14)' : 'rgba(57,255,120,0.14)';
   const accentBorder = isCoach ? 'rgba(249,115,22,0.3)' : 'rgba(57,255,120,0.3)';
