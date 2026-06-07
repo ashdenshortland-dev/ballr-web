@@ -11,7 +11,7 @@ module.exports = async function handler(req, res) {
   const { data: session, error } = await supabase
     .from('sessions')
     .select('*')
-    .eq('share_slug', slug
+    .eq('share_slug', slug)
     .single();
 
   if (error || !session) {
