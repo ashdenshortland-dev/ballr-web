@@ -127,7 +127,7 @@ function renderPage(session, coach, host, players) {
           <div class="icon">⚽</div>
             <h1>Session Not Found</h1>
               <p>This session link may have expired or been removed.</p>
-                <a href="https://apps.apple.com/app/ballr/id6744039091" class="btn">Get BALLR</a>
+                <a href="https://apps.apple.com/gb/app/ballr-club/id6762270628" class="btn">Get BALLR</a>
                 </div>
                 </body>
                 </html>`;
@@ -257,7 +257,7 @@ function renderPage(session, coach, host, players) {
 
                                                                                             </div>
                                                                                             <div class="cta-bar">
-                                                                                              <a href="https://apps.apple.com/app/ballr/id6744039091" class="cta">${isCoach ? 'Book on BALLR' : 'Join on BALLR'}</a>
+                                                                                              <a href="https://apps.apple.com/gb/app/ballr-club/id6762270628" class="cta">${isCoach ? 'Book on BALLR' : 'Join on BALLR'}</a>
                                                                                               </div>
                                                                                               </body>
                                                                                               </html>`;
