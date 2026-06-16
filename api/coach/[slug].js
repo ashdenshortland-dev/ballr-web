@@ -24,7 +24,8 @@ module.exports = async function handler(req, res) {
             coach_specialities,
             coach_license,
             instagram_handle,
-            username
+            username,
+            direct_booking_locations
         `)
         .eq('username', slug)
         .single();
@@ -45,7 +46,8 @@ module.exports = async function handler(req, res) {
                 coach_specialities,
                 coach_license,
                 instagram_handle,
-                username
+                username,
+                direct_booking_locations
             `)
             .eq('id', slug)
             .single();
@@ -102,6 +104,7 @@ function renderPage(coach, reviews) {
     var coachSpecialities = coach ? (coach.coach_specialities || []) : [];
     var coachLicense = coach ? (coach.coach_license || '') : '';
     var coachLocation = coach ? (coach.location || '') : '';
+    var coachBookingLocations = coach ? (coach.direct_booking_locations || []) : [];
     var avatarUrl = coach ? (coach.avatar_url || '') : '';
 
     var accentColor = 'rgba(249,115,22,1)';
@@ -130,9 +133,15 @@ function renderPage(coach, reviews) {
         ? '<p class="bio">' + escapeHtml(coachBio) + '</p>'
         : '';
 
-    var locationHtml = coachLocation
-        ? '<div class="location">\u{1F4CD} ' + escapeHtml(coachLocation) + '</div>'
-        : '';
+    var locationHtml = '';
+    if (Array.isArray(coachBookingLocations) && coachBookingLocations.length > 0) {
+        var locationNames = coachBookingLocations
+            .map(function(loc) { return loc && loc.name ? escapeHtml(loc.name) : null; })
+            .filter(Boolean);
+        if (locationNames.length > 0) {
+            locationHtml = '<div class="location">\u{1F4CD} ' + locationNames.join(' &middot; ') + '</div>';
+        }
+    }
 
     var qualificationHtml = coachLicense
         ? '<div class="qualification"><span class="qualification-label">\u{1F3C5} Qualification: </span>' + escapeHtml(coachLicense) + '</div>'
