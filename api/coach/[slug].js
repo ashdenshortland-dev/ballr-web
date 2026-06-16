@@ -24,7 +24,6 @@ module.exports = async function handler(req, res) {
             coach_specialities,
             coach_license,
             instagram_handle,
-            location,
             username
         `)
         .eq('username', slug)
