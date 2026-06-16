@@ -24,6 +24,7 @@ module.exports = async function handler(req, res) {
             coach_specialities,
             coach_license,
             instagram_handle,
+            location,
             username
         `)
         .eq('username', slug)
@@ -101,6 +102,7 @@ function renderPage(coach, reviews) {
     var coachRatingCount = coach ? (coach.coach_rating_count || 0) : 0;
     var coachSpecialities = coach ? (coach.coach_specialities || []) : [];
     var coachLicense = coach ? (coach.coach_license || '') : '';
+    var coachLocation = coach ? (coach.location || '') : '';
     var avatarUrl = coach ? (coach.avatar_url || '') : '';
 
     var accentColor = 'rgba(249,115,22,1)';
@@ -127,6 +129,10 @@ function renderPage(coach, reviews) {
 
     var bioHtml = coachBio
         ? '<p class="bio">' + escapeHtml(coachBio) + '</p>'
+        : '';
+
+    var locationHtml = coachLocation
+        ? '<div class="location">\u{1F4CD} ' + escapeHtml(coachLocation) + '</div>'
         : '';
 
     var qualificationHtml = coachLicense
@@ -247,6 +253,11 @@ function renderPage(coach, reviews) {
 '            color: #aaa;\n' +
 '            text-align: center;\n' +
 '            line-height: 1.6;\n' +
+'        }\n' +
+'        .location {\n' +
+'            font-size: 14px;\n' +
+'            color: #aaa;\n' +
+'            text-align: center;\n' +
 '        }\n' +
 '        .rating-row {\n' +
 '            display: flex;\n' +
@@ -382,6 +393,7 @@ function renderPage(coach, reviews) {
 '        ' + avatarHtml + '\n' +
 '        <h1 class="coach-name">' + escapeHtml(coachName) + '</h1>\n' +
 '        ' + ratingHtml + '\n' +
+'        ' + locationHtml + '\n' +
 '        ' + bioHtml + '\n' +
 '        ' + qualificationHtml + '\n' +
 '        ' + specialtiesHtml + '\n' +
