@@ -56,10 +56,24 @@ module.exports = async function handler(req, res) {
     }
 
     if (!coach) {
-        return res.status(404).send(renderPage(null));
+        return res.status(404).send(renderPage(null, []));
     }
 
-    return res.status(200).send(renderPage(coach));
+    // Fetch top 3 reviews for this coach
+    let reviews = [];
+    if (coach.id) {
+        const { data: reviewData } = await supabase
+            .from('reviews')
+            .select('rating, comment, reviewer_name, created_at')
+            .eq('coach_id', coach.id)
+            .order('rating', { ascending: false })
+            .limit(3);
+        if (reviewData && reviewData.length > 0) {
+            reviews = reviewData;
+        }
+    }
+
+    return res.status(200).send(renderPage(coach, reviews));
 };
 
 function renderStars(rating) {
@@ -74,7 +88,7 @@ function renderStars(rating) {
     return stars;
 }
 
-function renderPage(coach) {
+function renderPage(coach, reviews) {
     var appScheme = coach
         ? (coach.username
             ? 'ballr://coach/' + coach.username
@@ -86,6 +100,7 @@ function renderPage(coach) {
     var coachRating = coach ? (coach.coach_rating || 0) : 0;
     var coachRatingCount = coach ? (coach.coach_rating_count || 0) : 0;
     var coachSpecialities = coach ? (coach.coach_specialities || []) : [];
+    var coachLicense = coach ? (coach.coach_license || '') : '';
     var avatarUrl = coach ? (coach.avatar_url || '') : '';
 
     var accentColor = 'rgba(249,115,22,1)';
@@ -95,7 +110,7 @@ function renderPage(coach) {
     var specialtiesHtml = Array.isArray(coachSpecialities) && coachSpecialities.length > 0
         ? '<div class="specialties">' +
             coachSpecialities.map(function(s) { return '<span class="tag">' + escapeHtml(s) + '</span>'; }).join('') +
-          '</div>'
+            '</div>'
         : '';
 
     var ratingHtml = coachRating > 0
@@ -103,7 +118,7 @@ function renderPage(coach) {
             '<span class="stars-display">' + renderStars(coachRating) + '</span>' +
             '<span class="rating-number">' + coachRating.toFixed(1) + '</span>' +
             '<span class="rating-count">(' + coachRatingCount + ' review' + (coachRatingCount !== 1 ? 's' : '') + ')</span>' +
-          '</div>'
+            '</div>'
         : '';
 
     var avatarHtml = avatarUrl
@@ -114,18 +129,39 @@ function renderPage(coach) {
         ? '<p class="bio">' + escapeHtml(coachBio) + '</p>'
         : '';
 
+    var qualificationHtml = coachLicense
+        ? '<div class="qualification"><span class="qualification-label">\u{1F3C5} Qualification: </span>' + escapeHtml(coachLicense) + '</div>'
+        : '';
+
+    var reviewsHtml = '';
+    if (reviews && reviews.length > 0) {
+        reviewsHtml = '<div class="reviews-section">' +
+            '<h3 class="reviews-title">What clients say</h3>' +
+            reviews.map(function(r) {
+                var reviewStars = renderStars(r.rating || 5);
+                var reviewerName = r.reviewer_name ? escapeHtml(r.reviewer_name) : 'Client';
+                var comment = r.comment ? escapeHtml(r.comment) : '';
+                return '<div class="review-card">' +
+                    '<div class="review-stars">' + reviewStars + '</div>' +
+                    (comment ? '<p class="review-comment">\"' + comment + '\"</p>' : '') +
+                    '<span class="review-author">— ' + reviewerName + '</span>' +
+                    '</div>';
+            }).join('') +
+            '</div>';
+    }
+
     var notFoundHtml = !coach
         ? '<div class="not-found"><p>This coach profile could not be found.</p></div>'
         : '';
 
     var openAppBtn = coach
-        ? '<a class="cta-btn" id="open-app-btn" href="' + escapeHtml(appScheme) + '">View Profile in BALLR</a>'
+        ? '<a class="cta-btn" id="open-app-btn" href="' + escapeHtml(appScheme) + '">Book a Session in BALLR</a>'
         : '';
 
     var divider = coach ? '<div class="divider"></div>' : '';
 
     var ogImage = avatarUrl ? '<meta property="og:image" content="' + escapeHtml(avatarUrl) + '" />' : '';
-    var metaDesc = escapeHtml(coachBio || 'View ' + coachName + ' coaching profile on BALLR.');
+    var metaDesc = escapeHtml(coachBio || 'Book ' + coachName + ' for a coaching session on BALLR.');
 
     return '<!DOCTYPE html>\n' +
 '<html lang="en">\n' +
@@ -170,6 +206,16 @@ function renderPage(coach) {
 '            color: ' + accentColor + ';\n' +
 '            margin-bottom: 4px;\n' +
 '        }\n' +
+'        .book-title {\n' +
+'            font-size: 20px;\n' +
+'            font-weight: 700;\n' +
+'            color: #fff;\n' +
+'            text-align: center;\n' +
+'            margin-bottom: 8px;\n' +
+'        }\n' +
+'        .book-title span {\n' +
+'            color: ' + accentColor + ';\n' +
+'        }\n' +
 '        .avatar {\n' +
 '            width: 100px;\n' +
 '            height: 100px;\n' +
@@ -186,7 +232,7 @@ function renderPage(coach) {
 '            display: flex;\n' +
 '            align-items: center;\n' +
 '            justify-content: center;\n' +
-'            font-size: 40px;\n' +
+'            font-size: 36px;\n' +
 '            font-weight: 700;\n' +
 '            color: ' + accentColor + ';\n' +
 '        }\n' +
@@ -215,7 +261,6 @@ function renderPage(coach) {
 '        .rating-number {\n' +
 '            font-size: 18px;\n' +
 '            font-weight: 700;\n' +
-'            color: #fff;\n' +
 '        }\n' +
 '        .rating-count {\n' +
 '            font-size: 13px;\n' +
@@ -235,6 +280,53 @@ function renderPage(coach) {
 '            padding: 5px 14px;\n' +
 '            font-size: 13px;\n' +
 '            font-weight: 600;\n' +
+'        }\n' +
+'        .qualification {\n' +
+'            font-size: 14px;\n' +
+'            color: #ccc;\n' +
+'            text-align: center;\n' +
+'            background: ' + accentBg + ';\n' +
+'            border: 1px solid ' + accentBorder + ';\n' +
+'            border-radius: 10px;\n' +
+'            padding: 10px 16px;\n' +
+'            width: 100%;\n' +
+'        }\n' +
+'        .qualification-label {\n' +
+'            font-weight: 700;\n' +
+'            color: ' + accentColor + ';\n' +
+'        }\n' +
+'        .reviews-section {\n' +
+'            width: 100%;\n' +
+'        }\n' +
+'        .reviews-title {\n' +
+'            font-size: 16px;\n' +
+'            font-weight: 700;\n' +
+'            color: #fff;\n' +
+'            margin-bottom: 12px;\n' +
+'            text-align: center;\n' +
+'        }\n' +
+'        .review-card {\n' +
+'            background: #1a1a1a;\n' +
+'            border: 1px solid ' + accentBorder + ';\n' +
+'            border-radius: 12px;\n' +
+'            padding: 14px 16px;\n' +
+'            margin-bottom: 10px;\n' +
+'        }\n' +
+'        .review-stars {\n' +
+'            font-size: 16px;\n' +
+'            color: ' + accentColor + ';\n' +
+'            margin-bottom: 6px;\n' +
+'        }\n' +
+'        .review-comment {\n' +
+'            font-size: 14px;\n' +
+'            color: #ccc;\n' +
+'            line-height: 1.5;\n' +
+'            margin-bottom: 6px;\n' +
+'            font-style: italic;\n' +
+'        }\n' +
+'        .review-author {\n' +
+'            font-size: 12px;\n' +
+'            color: #888;\n' +
 '        }\n' +
 '        .divider {\n' +
 '            width: 100%;\n' +
@@ -286,11 +378,14 @@ function renderPage(coach) {
 '<body>\n' +
 '    <div class="card">\n' +
 '        <div class="logo">BALLR</div>\n' +
+'        ' + (coach ? '<p class="book-title">Book <span>' + escapeHtml(coachName) + '</span> in BALLR</p>' : '') + '\n' +
 '        ' + avatarHtml + '\n' +
 '        <h1 class="coach-name">' + escapeHtml(coachName) + '</h1>\n' +
 '        ' + ratingHtml + '\n' +
 '        ' + bioHtml + '\n' +
+'        ' + qualificationHtml + '\n' +
 '        ' + specialtiesHtml + '\n' +
+'        ' + reviewsHtml + '\n' +
 '        ' + divider + '\n' +
 '        ' + notFoundHtml + '\n' +
 '        ' + openAppBtn + '\n' +
@@ -308,9 +403,7 @@ function renderPage(coach) {
 '                window.addEventListener(\'blur\', function() { didBlur = true; }, { once: true });\n' +
 '                window.location.href = appScheme;\n' +
 '                setTimeout(function() {\n' +
-'                    if (!didBlur) {\n' +
-'                        // App not installed - stay on page\n' +
-'                    }\n' +
+'                    if (!didBlur) { window.location.href = storeUrl; }\n' +
 '                }, 1500);\n' +
 '            }\n' +
 '            var btn = document.getElementById(\'open-app-btn\');\n' +
@@ -326,7 +419,7 @@ function renderPage(coach) {
 '                });\n' +
 '            }\n' +
 '        })();\n' +
-'    <\/script>\n' +
+'    </script>\n' +
 '</body>\n' +
 '</html>';
 }
@@ -338,5 +431,5 @@ function escapeHtml(str) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+        .replace(/'/g, '&#x27;');
 }
