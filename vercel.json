@@ -3,6 +3,10 @@
     {
       "source": "/session/:slug",
       "destination": "/api/session/:slug"
+    },
+    {
+      "source": "/coach/:slug",
+      "destination": "/api/coach/:slug"
     }
   ],
   "headers": [
