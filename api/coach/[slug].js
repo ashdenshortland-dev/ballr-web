@@ -14,19 +14,7 @@ module.exports = async function handler(req, res) {
     // Try by username first
     const { data: byUsername } = await supabase
         .from('profiles')
-        .select(`
-            id,
-            full_name,
-            avatar_url,
-            coach_bio,
-            coach_rating,
-            coach_rating_count,
-            coach_specialities,
-            coach_license,
-            instagram_handle,
-            username,
-            direct_booking_locations
-        `)
+        .select('*')
         .eq('username', slug)
         .single();
 
@@ -36,19 +24,7 @@ module.exports = async function handler(req, res) {
         // Try by UUID
         const { data: byId } = await supabase
             .from('profiles')
-            .select(`
-                id,
-                full_name,
-                avatar_url,
-                coach_bio,
-                coach_rating,
-                coach_rating_count,
-                coach_specialities,
-                coach_license,
-                instagram_handle,
-                username,
-                direct_booking_locations
-            `)
+            .select('*')
             .eq('id', slug)
             .single();
 
@@ -97,12 +73,12 @@ function renderPage(coach, reviews) {
             : 'ballr://coach/id/' + coach.id)
         : 'ballr://';
 
-    var coachName = coach ? (coach.full_name || 'Coach') : 'Coach Not Found';
+    var coachName = coach ? (coach.full_name || coach.username || 'Coach') : 'Coach Not Found';
     var coachBio = coach ? (coach.coach_bio || '') : '';
     var coachRating = coach ? (coach.coach_rating || 0) : 0;
     var coachRatingCount = coach ? (coach.coach_rating_count || 0) : 0;
     var coachSpecialities = coach ? (coach.coach_specialities || []) : [];
-    var coachLicense = coach ? (coach.coach_license || '') : '';
+    var coachLicense = coach ? (coach.coach_license || coach.qualifications || coach.coach_qualifications || coach.certifications || '') : '';
     var coachLocation = coach ? (coach.location || '') : '';
     var coachBookingLocations = coach ? (coach.direct_booking_locations || []) : [];
     var avatarUrl = coach ? (coach.avatar_url || '') : '';
