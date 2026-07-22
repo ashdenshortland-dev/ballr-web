@@ -403,8 +403,9 @@ function renderPage(coach, reviews) {
 '    <script>\n' +
 '        (function() {\n' +
 '            var appScheme = \'' + appScheme.replace(/'/g, "\\'") + '\';\n' +
-'            var storeUrl = \'https://apps.apple.com/gb/app/ballr-club/id6762270628\';\n' +
 '            var ua = navigator.userAgent || \'\';\n' +
+'            var isAndroid = /android/i.test(ua);\n' +
+'            var storeUrl = isAndroid ? \'https://play.google.com/store/apps/details?id=com.ballrapp.app&pcampaignid=web_share\' : \'https://apps.apple.com/gb/app/ballr-club/id6762270628\';\n' +
 '            var isMobile = /iphone|ipad|ipod|android/i.test(ua);\n' +
 '            if (isMobile && appScheme !== \'ballr://\') {\n' +
 '                var didBlur = false;\n' +
