@@ -134,7 +134,7 @@ function renderPage(coach, reviews) {
                 return '<div class="review-card">' +
                     '<div class="review-stars">' + reviewStars + '</div>' +
                     (comment ? '<p class="review-comment">\"' + comment + '\"</p>' : '') +
-                    '<span class="review-author">— ' + reviewerName + '</span>' +
+                    '<span class="review-author">â ' + reviewerName + '</span>' +
                     '</div>';
             }).join('') +
             '</div>';
@@ -358,6 +358,15 @@ function renderPage(coach, reviews) {
 '            text-decoration: none;\n' +
 '            cursor: pointer;\n' +
 '        }\n' +
+'        .store-buttons {\n' +
+'            display: flex;\n' +
+'            gap: 10px;\n' +
+'            width: 100%;\n' +
+'        }\n' +
+'        .store-buttons .app-store-btn {\n' +
+'            width: auto;\n' +
+'            flex: 1;\n' +
+'        }\n' +
 '        .powered-by {\n' +
 '            font-size: 12px;\n' +
 '            color: #555;\n' +
@@ -385,7 +394,10 @@ function renderPage(coach, reviews) {
 '        ' + divider + '\n' +
 '        ' + notFoundHtml + '\n' +
 '        ' + openAppBtn + '\n' +
-'        <a class="app-store-btn" href="https://apps.apple.com/gb/app/ballr-club/id6762270628">Download BALLR</a>\n' +
+'        <div class="store-buttons">\n' +
+'            <a class="app-store-btn" href="https://apps.apple.com/gb/app/ballr-club/id6762270628">Download BALLR on iOS</a>\n' +
+'            <a class="app-store-btn" href="https://play.google.com/store/apps/details?id=com.ballrapp.app&amp;pcampaignid=web_share">Download BALLR on Android</a>\n' +
+'        </div>\n' +
 '        <span class="powered-by">Powered by BALLR</span>\n' +
 '    </div>\n' +
 '    <script>\n' +
