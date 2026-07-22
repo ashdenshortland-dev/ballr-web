@@ -385,13 +385,13 @@ function renderPage(coach, reviews) {
 '        ' + divider + '\n' +
 '        ' + notFoundHtml + '\n' +
 '        ' + openAppBtn + '\n' +
-'        <a class="app-store-btn" href="https://apps.apple.com/app/ballr-club/id6742704739">Download BALLR</a>\n' +
+'        <a class="app-store-btn" href="https://apps.apple.com/gb/app/ballr-club/id6762270628">Download BALLR</a>\n' +
 '        <span class="powered-by">Powered by BALLR</span>\n' +
 '    </div>\n' +
 '    <script>\n' +
 '        (function() {\n' +
 '            var appScheme = \'' + appScheme.replace(/'/g, "\\'") + '\';\n' +
-'            var storeUrl = \'https://apps.apple.com/app/ballr-club/id6742704739\';\n' +
+'            var storeUrl = \'https://apps.apple.com/gb/app/ballr-club/id6762270628\';\n' +
 '            var ua = navigator.userAgent || \'\';\n' +
 '            var isMobile = /iphone|ipad|ipod|android/i.test(ua);\n' +
 '            if (isMobile && appScheme !== \'ballr://\') {\n' +
