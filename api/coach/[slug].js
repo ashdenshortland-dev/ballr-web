@@ -53,19 +53,24 @@ module.exports = async function handler(req, res) {
 
     // Fetch the next 3 upcoming sessions this coach is running.
     // Private (invite-only) sessions are excluded since this is a public page.
+    // Uses select('*') rather than naming columns, since we don't know the
+    // exact sessions schema here (see api/session/[slug].js for the same
+    // pattern) — naming a column that doesn't exist would fail the whole
+    // query. The is_private filter is applied in JS for the same reason.
     let upcomingSessions = [];
     if (coach.id) {
         const nowIso = new Date().toISOString();
-        const { data: sessionData } = await supabase
+        const { data: sessionData, error: sessionError } = await supabase
             .from('sessions')
-            .select('id, share_slug, title, session_type, coach_session_type, start_time, location_name, address_text, surface_type, price_pence, cost_per_player_pence, max_players, current_player_count, is_private')
+            .select('*')
             .eq('coach_id', coach.id)
             .gte('start_time', nowIso)
-            .or('is_private.is.null,is_private.eq.false')
             .order('start_time', { ascending: true })
-            .limit(3);
-        if (sessionData && sessionData.length > 0) {
-            upcomingSessions = sessionData;
+            .limit(10);
+        if (sessionError) {
+            console.error('Failed to fetch upcoming sessions for coach', coach.id, sessionError);
+        } else if (sessionData && sessionData.length > 0) {
+            upcomingSessions = sessionData.filter(function(s) { return !s.is_private; }).slice(0, 3);
         }
     }
 
