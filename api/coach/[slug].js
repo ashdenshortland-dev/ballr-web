@@ -34,7 +34,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (!coach) {
-        return res.status(404).send(renderPage(null, []));
+        return res.status(404).send(renderPage(null, [], []));
     }
 
     // Fetch top 3 reviews for this coach
@@ -51,7 +51,25 @@ module.exports = async function handler(req, res) {
         }
     }
 
-    return res.status(200).send(renderPage(coach, reviews));
+    // Fetch the next 3 upcoming sessions this coach is running.
+    // Private (invite-only) sessions are excluded since this is a public page.
+    let upcomingSessions = [];
+    if (coach.id) {
+        const nowIso = new Date().toISOString();
+        const { data: sessionData } = await supabase
+            .from('sessions')
+            .select('id, share_slug, title, session_type, coach_session_type, start_time, location_name, address_text, surface_type, price_pence, cost_per_player_pence, max_players, current_player_count, is_private')
+            .eq('coach_id', coach.id)
+            .gte('start_time', nowIso)
+            .or('is_private.is.null,is_private.eq.false')
+            .order('start_time', { ascending: true })
+            .limit(3);
+        if (sessionData && sessionData.length > 0) {
+            upcomingSessions = sessionData;
+        }
+    }
+
+    return res.status(200).send(renderPage(coach, reviews, upcomingSessions));
 };
 
 function renderStars(rating) {
@@ -66,7 +84,36 @@ function renderStars(rating) {
     return stars;
 }
 
-function renderPage(coach, reviews) {
+function formatSessionDate(dateStr) {
+    if (!dateStr) return 'Date TBC';
+    var d = new Date(dateStr);
+    return d.toLocaleDateString('en-GB', {
+        weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/London'
+    });
+}
+
+function formatSessionTime(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr);
+    return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' });
+}
+
+function formatSessionPrice(pence) {
+    if (!pence && pence !== 0) return null;
+    return '\u00a3' + (pence / 100).toFixed(2);
+}
+
+function titleCase(str) {
+    return str.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+}
+
+function formatCoachSessionType(type) {
+    if (!type) return null;
+    var map = { 'small_group': 'Small Group', 'large_group': 'Large Group', '1_to_1': '1-to-1', 'one_to_one': '1-to-1', 'team': 'Team Session', 'individual': 'Individual' };
+    return map[type] || titleCase(type);
+}
+
+function renderPage(coach, reviews, upcomingSessions) {
     var appScheme = coach
         ? (coach.username
             ? 'ballr://coach/' + coach.username
@@ -122,6 +169,58 @@ function renderPage(coach, reviews) {
     var qualificationHtml = coachLicense
         ? '<div class="qualification"><span class="qualification-label">\u{1F3C5} Qualification: </span>' + escapeHtml(coachLicense) + '</div>'
         : '';
+
+    var sessionsHtml = '';
+    if (upcomingSessions && upcomingSessions.length > 0) {
+        sessionsHtml = '<div class="sessions-section">' +
+            '<h3 class="sessions-title">Upcoming Sessions</h3>' +
+            upcomingSessions.map(function(s) {
+                var typeLabel = formatCoachSessionType(s.coach_session_type) ||
+                    (s.session_type ? titleCase(s.session_type) : 'Coaching Session');
+                var sessionTitle = s.title ? escapeHtml(s.title) : typeLabel;
+                var dateLabel = formatSessionDate(s.start_time);
+                var timeLabel = formatSessionTime(s.start_time);
+                var locationText = s.location_name || s.address_text || '';
+                var surfaceLabel = s.surface_type ? titleCase(s.surface_type) : '';
+                var pricePence = (s.price_pence || s.price_pence === 0) ? s.price_pence : s.cost_per_player_pence;
+                var priceLabel = (pricePence || pricePence === 0) ? formatSessionPrice(pricePence) : 'Free';
+
+                var spotsHtml = '';
+                if (s.max_players) {
+                    var spotsLeft = Math.max(0, s.max_players - (s.current_player_count || 0));
+                    var spotsText = spotsLeft === 0 ? 'Full' : (spotsLeft + ' spot' + (spotsLeft !== 1 ? 's' : '') + ' left');
+                    spotsHtml = '<span class="session-spots' + (spotsLeft === 0 ? ' session-spots-full' : '') + '">' + spotsText + '</span>';
+                }
+
+                var metaHtml = '<div class="session-meta">' +
+                    '<span class="session-meta-item">\u{1F4C5} ' + escapeHtml(dateLabel) + '</span>' +
+                    (timeLabel ? '<span class="session-meta-item">\u{1F550} ' + escapeHtml(timeLabel) + '</span>' : '') +
+                    '</div>';
+
+                var locationHtmlInner = locationText
+                    ? '<div class="session-location">\u{1F4CD} ' + escapeHtml(locationText) + (surfaceLabel ? ' &middot; ' + escapeHtml(surfaceLabel) : '') + '</div>'
+                    : '';
+
+                var bookBtnHtml = s.share_slug
+                    ? '<a class="session-book-btn" href="/session/' + encodeURIComponent(s.share_slug) + '">View &amp; Book</a>'
+                    : '';
+
+                return '<div class="session-card">' +
+                    '<div class="session-card-head">' +
+                        '<span class="session-type-tag">' + escapeHtml(typeLabel) + '</span>' +
+                        spotsHtml +
+                    '</div>' +
+                    '<div class="session-title-text">' + sessionTitle + '</div>' +
+                    metaHtml +
+                    locationHtmlInner +
+                    '<div class="session-footer">' +
+                        '<span class="session-price">' + escapeHtml(priceLabel) + '</span>' +
+                        bookBtnHtml +
+                    '</div>' +
+                    '</div>';
+            }).join('') +
+            '</div>';
+    }
 
     var reviewsHtml = '';
     if (reviews && reviews.length > 0) {
@@ -290,6 +389,94 @@ function renderPage(coach, reviews) {
 '            font-weight: 700;\n' +
 '            color: ' + accentColor + ';\n' +
 '        }\n' +
+'        .sessions-section {\n' +
+'            width: 100%;\n' +
+'        }\n' +
+'        .sessions-title {\n' +
+'            font-size: 16px;\n' +
+'            font-weight: 700;\n' +
+'            color: #fff;\n' +
+'            margin-bottom: 12px;\n' +
+'            text-align: center;\n' +
+'        }\n' +
+'        .session-card {\n' +
+'            background: #1a1a1a;\n' +
+'            border: 1px solid ' + accentBorder + ';\n' +
+'            border-radius: 12px;\n' +
+'            padding: 14px 16px;\n' +
+'            margin-bottom: 10px;\n' +
+'            text-align: left;\n' +
+'        }\n' +
+'        .session-card-head {\n' +
+'            display: flex;\n' +
+'            align-items: center;\n' +
+'            justify-content: space-between;\n' +
+'            gap: 8px;\n' +
+'            margin-bottom: 8px;\n' +
+'        }\n' +
+'        .session-type-tag {\n' +
+'            background: ' + accentBg + ';\n' +
+'            border: 1px solid ' + accentBorder + ';\n' +
+'            color: ' + accentColor + ';\n' +
+'            border-radius: 20px;\n' +
+'            padding: 3px 10px;\n' +
+'            font-size: 11px;\n' +
+'            font-weight: 700;\n' +
+'            text-transform: uppercase;\n' +
+'            letter-spacing: 0.5px;\n' +
+'        }\n' +
+'        .session-spots {\n' +
+'            font-size: 12px;\n' +
+'            font-weight: 600;\n' +
+'            color: #8bd17c;\n' +
+'        }\n' +
+'        .session-spots-full {\n' +
+'            color: #888;\n' +
+'        }\n' +
+'        .session-title-text {\n' +
+'            font-size: 16px;\n' +
+'            font-weight: 700;\n' +
+'            color: #fff;\n' +
+'            margin-bottom: 6px;\n' +
+'        }\n' +
+'        .session-meta {\n' +
+'            display: flex;\n' +
+'            flex-wrap: wrap;\n' +
+'            gap: 12px;\n' +
+'            margin-bottom: 6px;\n' +
+'        }\n' +
+'        .session-meta-item {\n' +
+'            font-size: 13px;\n' +
+'            color: #ccc;\n' +
+'        }\n' +
+'        .session-location {\n' +
+'            font-size: 13px;\n' +
+'            color: #aaa;\n' +
+'            margin-bottom: 10px;\n' +
+'        }\n' +
+'        .session-footer {\n' +
+'            display: flex;\n' +
+'            align-items: center;\n' +
+'            justify-content: space-between;\n' +
+'            gap: 10px;\n' +
+'            padding-top: 10px;\n' +
+'            border-top: 1px solid ' + accentBorder + ';\n' +
+'        }\n' +
+'        .session-price {\n' +
+'            font-size: 15px;\n' +
+'            font-weight: 700;\n' +
+'            color: ' + accentColor + ';\n' +
+'        }\n' +
+'        .session-book-btn {\n' +
+'            background: ' + accentColor + ';\n' +
+'            color: #000;\n' +
+'            font-size: 13px;\n' +
+'            font-weight: 700;\n' +
+'            padding: 8px 16px;\n' +
+'            border-radius: 10px;\n' +
+'            text-decoration: none;\n' +
+'            white-space: nowrap;\n' +
+'        }\n' +
 '        .reviews-section {\n' +
 '            width: 100%;\n' +
 '        }\n' +
@@ -390,6 +577,7 @@ function renderPage(coach, reviews) {
 '        ' + bioHtml + '\n' +
 '        ' + qualificationHtml + '\n' +
 '        ' + specialtiesHtml + '\n' +
+'        ' + sessionsHtml + '\n' +
 '        ' + reviewsHtml + '\n' +
 '        ' + divider + '\n' +
 '        ' + notFoundHtml + '\n' +
